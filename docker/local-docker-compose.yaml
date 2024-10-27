@@ -1,0 +1,31 @@
+services:
+
+  optisense:
+    ports:
+      - "8000:8000"
+    build:
+      dockerfile: ./docker/app/Dockerfile
+      context: ../
+    command: >
+      bash -c "cd src/optisense
+      && python -m gunicorn optisense.asgi:application -k uvicorn_worker.UvicornWorker --bind 0.0.0.0:8000 --reload"
+    volumes:
+      - ../:/opt/app
+    restart: on-failure
+    depends_on:
+      optisense-db:
+        condition: service_healthy
+    env_file:
+      - app/.env
+
+  optisense-db:
+    image: postgres:15.5-alpine
+    ports:
+      - "54320:5432"
+    healthcheck:
+      test: [ "CMD", "psql" ,"-U", "postgres", "-w", "-c", "SELECT 1;" ]
+      timeout: 0.5s
+      interval: 0.5s
+      retries: 100
+    env_file:
+      - postgres/local.env
