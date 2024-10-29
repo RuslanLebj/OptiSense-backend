@@ -1,6 +1,7 @@
 services:
 
   optisense:
+    container_name: optisense-app
     ports:
       - "8000:8000"
     build:
@@ -8,6 +9,7 @@ services:
       context: ../
     command: >
       bash -c "cd src/optisense
+      && python manage.py migrate
       && python -m gunicorn optisense.asgi:application -k uvicorn_worker.UvicornWorker --bind 0.0.0.0:8000 --reload"
     volumes:
       - ../:/opt/app
@@ -17,8 +19,11 @@ services:
         condition: service_healthy
     env_file:
       - app/.env
+    environment:
+      - PYTHONUNBUFFERED=1
 
   optisense-db:
+    container_name: optisense-db
     image: postgres:15.5-alpine
     ports:
       - "54320:5432"

@@ -39,6 +39,7 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "api"
 ]
 
 MIDDLEWARE = [
@@ -85,7 +86,6 @@ DATABASES = {
         "PORT": env("POSTGRES_PORT", default=""),
     }
 }
-print(f"PGNAME: {env("POSTGRES_NAME", default="")}")
 
 
 # Password validation
