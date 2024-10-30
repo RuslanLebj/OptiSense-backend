@@ -10,7 +10,7 @@ services:
     command: >
       bash -c "cd src/optisense
       && python manage.py migrate
-      && python -m gunicorn optisense.asgi:application -k uvicorn_worker.UvicornWorker --bind 0.0.0.0:8000 --reload"
+      && python manage.py runserver 0.0.0.0:8000"
     volumes:
       - ../:/opt/app
     restart: on-failure
