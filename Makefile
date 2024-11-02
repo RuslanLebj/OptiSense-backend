@@ -17,3 +17,6 @@ migrations: # создает миграции на основе Django моде�
 
 migrate: # применяет миграции
 	docker exec -it optisense-app python src/optisense/manage.py migrate
+
+generate-test-data: # генерация тестовых данных
+	docker exec -it optisense-app python src/optisense/manage.py generate_test_data
