@@ -30,6 +30,7 @@ DEBUG = env.bool("DEBUG", default=False)
 
 ALLOWED_HOSTS = env("ALLOWED_HOSTS", default="localhost").split(",")
 
+CORS_ALLOWED_ORIGINS = env("CORS_ALLOWED_ORIGINS", default="http://localhost:5173").split(",")
 
 # Application definition
 
@@ -143,7 +144,3 @@ REST_FRAMEWORK = {
     ],
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
 }
-
-CORS_ALLOWED_ORIGINS = [
-    'http://localhost:5173',  # Замените на адрес вашего React-приложения
-]
