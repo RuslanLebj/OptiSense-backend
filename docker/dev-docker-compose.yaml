@@ -22,6 +22,7 @@ services:
       - app/.env
     environment:
       - PYTHONUNBUFFERED=1
+      - DEBUG=True
 
   optisense-db:
     container_name: optisense-db

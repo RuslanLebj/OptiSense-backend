@@ -1,12 +1,12 @@
 # Makefile
 
-up-dev: # поднять контейнеры
+up-dev: # поднять контейнеры в режиме разработки
 	docker compose -f docker/dev-docker-compose.yaml -p optisense up -d --force-recreate --remove-orphans || true
 
-restart-dev: # перезапустить контейнеры
+restart-dev: # перезапустить контейнеры в режиме разработки
 	docker compose -f docker/dev-docker-compose.yaml -p optisense restart
 
-down-dev: # остановить и удалить контейнеры
+down-dev: # остановить и удалить контейнеры в режиме разработки
 	docker compose -f docker/dev-docker-compose.yaml -p optisense down
 
 inspectdb: # создает модели на основе структуры таблиц в базе данных
@@ -20,3 +20,9 @@ migrate: # применяет миграции
 
 generate-test-data: # генерация тестовых данных
 	docker exec -it optisense-app python src/optisense/manage.py generate_test_data
+
+up: # поднять контейнеры
+	docker compose -f docker/docker-compose.yaml -p optisense up -d --force-recreate --remove-orphans || true
+
+down: # остановить и удалить контейнеры
+	docker compose -f docker/docker-compose.yaml -p optisense down
