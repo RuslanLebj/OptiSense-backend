@@ -2,7 +2,15 @@ from rest_framework import serializers
 from .models import Camera, CameraParameter, Outlet, ParameterType, Record
 
 
+class OutletSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Outlet
+        fields = "__all__"
+
+
 class CameraSerializer(serializers.ModelSerializer):
+    outlet_detail = OutletSerializer(source='outlet', read_only=True)
+
     class Meta:
         model = Camera
         fields = "__all__"
@@ -13,11 +21,6 @@ class CameraParameterSerializer(serializers.ModelSerializer):
         model = CameraParameter
         fields = "__all__"
 
-
-class OutletSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Outlet
-        fields = "__all__"
 
 
 class ParameterTypeSerializer(serializers.ModelSerializer):
