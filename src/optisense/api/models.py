@@ -16,7 +16,7 @@ class Camera(models.Model):
     connection_login = models.CharField(max_length=50)
     connection_password = models.CharField(max_length=50)
     is_active = models.BooleanField()
-    anchor_box_points = models.JSONField(blank=True, null=True)
+    roi_polygons_points = models.JSONField(blank=True, null=True)
 
     class Meta:
         # managed = False

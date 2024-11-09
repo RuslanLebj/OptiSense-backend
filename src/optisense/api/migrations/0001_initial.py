@@ -42,7 +42,7 @@ class Migration(migrations.Migration):
                 ('connection_login', models.CharField(max_length=50)),
                 ('connection_password', models.CharField(max_length=50)),
                 ('is_active', models.BooleanField()),
-                ('anchor_box_points', models.JSONField(blank=True, null=True)),
+                ('roi_polygons_points', models.JSONField(blank=True, null=True)),
                 ('outlet', models.ForeignKey(on_delete=django.db.models.deletion.DO_NOTHING, to='api.outlet')),
             ],
             options={

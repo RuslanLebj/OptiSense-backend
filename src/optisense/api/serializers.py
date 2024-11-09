@@ -9,7 +9,7 @@ class OutletSerializer(serializers.ModelSerializer):
 
 
 class CameraSerializer(serializers.ModelSerializer):
-    outlet_detail = OutletSerializer(source='outlet', read_only=True)
+    outlet_detail = OutletSerializer(source="outlet", read_only=True)
 
     class Meta:
         model = Camera
@@ -20,7 +20,6 @@ class CameraParameterSerializer(serializers.ModelSerializer):
     class Meta:
         model = CameraParameter
         fields = "__all__"
-
 
 
 class ParameterTypeSerializer(serializers.ModelSerializer):
