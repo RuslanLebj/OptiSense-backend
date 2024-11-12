@@ -5,9 +5,7 @@ from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView, Sp
 
 router = DefaultRouter()
 router.register(r"cameras", views.CameraViewSet)
-router.register(r"camera-parameters", views.CameraParameterViewSet)
 router.register(r"outlets", views.OutletViewSet)
-router.register(r"parameter-types", views.ParameterTypeViewSet)
 router.register(r"records", views.RecordViewSet)
 
 urlpatterns = [

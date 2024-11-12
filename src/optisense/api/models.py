@@ -9,27 +9,19 @@ from django.db import models
 
 
 class Camera(models.Model):
-    outlet = models.ForeignKey('Outlet', models.DO_NOTHING)
+    outlet = models.ForeignKey("Outlet", models.DO_NOTHING)
     name = models.CharField(max_length=120)
     preview = models.CharField(max_length=255, blank=True, null=True)
     url_address = models.CharField(max_length=80)
     connection_login = models.CharField(max_length=50)
     connection_password = models.CharField(max_length=50)
     is_active = models.BooleanField()
+    parameter_types = models.JSONField(blank=True, null=True)
     roi_polygons_points = models.JSONField(blank=True, null=True)
 
     class Meta:
         # managed = False
-        db_table = 'camera'
-
-
-class CameraParameter(models.Model):
-    camera = models.ForeignKey(Camera, models.DO_NOTHING)
-    parameter_type = models.ForeignKey('ParameterType', models.DO_NOTHING)
-
-    class Meta:
-        # managed = False
-        db_table = 'camera_parameter'
+        db_table = "camera"
 
 
 class Outlet(models.Model):
@@ -37,15 +29,7 @@ class Outlet(models.Model):
 
     class Meta:
         # managed = False
-        db_table = 'outlet'
-
-
-class ParameterType(models.Model):
-    name = models.CharField(max_length=120)
-
-    class Meta:
-        # managed = False
-        db_table = 'parameter_type'
+        db_table = "outlet"
 
 
 class Record(models.Model):
@@ -57,4 +41,4 @@ class Record(models.Model):
 
     class Meta:
         # managed = False
-        db_table = 'record'
+        db_table = "record"
