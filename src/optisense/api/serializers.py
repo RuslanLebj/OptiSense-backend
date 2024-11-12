@@ -15,7 +15,18 @@ class CameraSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Camera
-        fields = "__all__"
+        fields = [
+            "id",
+            "name",
+            "preview",
+            "url_address",
+            "connection_login",
+            "connection_password",
+            "is_active",
+            "parameter_types",
+            "roi_polygons_points",
+            "outlet_detail",
+        ]
 
     @staticmethod
     def validate_roi_polygons_points(value):
