@@ -53,7 +53,7 @@ class Command(BaseCommand):
         # Generate Record data
         records = []
         for camera in cameras:
-            for _ in range(random.randint(5, 10)):  # случайное число записей для каждой камеры
+            for _ in range(random.randint(100, 2000)):  # случайное число записей для каждой камеры
                 parameters_data = {}
 
                 # Если parameter_types указывает на отслеживание, генерируем значения для параметров
