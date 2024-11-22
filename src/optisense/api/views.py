@@ -7,7 +7,7 @@ from .serializers import (
     OutletSerializer,
     RecordSerializer,
 )
-from django.db.models import Avg, Func, FloatField
+from django.db.models import Avg, FloatField
 from django.db.models.functions import TruncDay, TruncWeek, TruncMonth
 from rest_framework.response import Response
 from rest_framework.decorators import action
@@ -48,12 +48,19 @@ class RecordViewSet(viewsets.ModelViewSet):
     filter_backends = [filters.DjangoFilterBackend]
     filterset_class = RecordFilter
 
+    def get_queryset(self):
+        """
+        Apply filters defined in RecordFilter to the queryset.
+        """
+        queryset = super().get_queryset()
+        return queryset
+
     @action(detail=False, methods=["get"])
     def averages(self, request):
         """
         Custom action to calculate averages grouped by day, week, or month for a specific parameter.
         """
-        queryset = self.get_queryset()
+        queryset = self.filter_queryset(self.get_queryset())
         group_by = request.query_params.get("group_by", "day").lower()
         parameter_key = request.query_params.get("parameter", None)
 
