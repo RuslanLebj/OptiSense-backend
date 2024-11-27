@@ -18,6 +18,7 @@ faker = "^30.8.2"
 django-cors-headers = "^4.6.0"
 pydantic = "^2.9.2"
 django-filter = "^24.3"
+djangorestframework-simplejwt = "^5.3.1"
 
 
 [build-system]
