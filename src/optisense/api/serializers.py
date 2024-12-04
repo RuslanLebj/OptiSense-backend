@@ -22,8 +22,11 @@ class CameraSerializer(serializers.ModelSerializer):
             "url_address",
             "connection_login",
             "connection_password",
+            "start_time",
+            "end_time",
             "is_active",
             "parameter_types",
+            "parameter_limits",
             "roi_polygons_points",
             "outlet_detail",
         ]
@@ -54,6 +57,18 @@ class CameraSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError(
                     f"Parameter Types validation error: {e}"
                 )
+        return value
+
+    @staticmethod
+    def validate_parameter_limits(value):
+        """
+        Validate parameter limits field using Pydantic.
+        """
+        if value:
+            try:
+                ParametersSchema.model_validate(value)
+            except PydanticValidationError as e:
+                raise serializers.ValidationError(f"Parameters validation error: {e}")
         return value
 
 

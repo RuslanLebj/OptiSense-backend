@@ -6,6 +6,7 @@
 #   * Remove `managed = False` lines if you wish to allow Django to create, modify, and delete the table
 # Feel free to rename the models, but don't rename db_table values or field names.
 from django.db import models
+from django.contrib.auth.models import AbstractUser
 
 
 class Camera(models.Model):
@@ -15,8 +16,11 @@ class Camera(models.Model):
     url_address = models.CharField(max_length=80)
     connection_login = models.CharField(max_length=50)
     connection_password = models.CharField(max_length=50)
+    start_time = models.TimeField(blank=True, null=True)
+    end_time = models.TimeField(blank=True, null=True)
     is_active = models.BooleanField()
     parameter_types = models.JSONField(blank=True, null=True)
+    parameter_limits = models.JSONField(blank=True, null=True)
     roi_polygons_points = models.JSONField(blank=True, null=True)
 
     class Meta:
@@ -42,3 +46,8 @@ class Record(models.Model):
     class Meta:
         # managed = False
         db_table = "record"
+
+
+class CustomUser(AbstractUser):
+    telegram_user_id = models.CharField(max_length=50, blank=True, null=True)
+    telegram_user_name = models.CharField(max_length=50, blank=True, null=True)

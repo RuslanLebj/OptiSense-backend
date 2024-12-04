@@ -14,9 +14,9 @@ from rest_framework_simplejwt.views import (
 
 
 router = DefaultRouter()
-router.register(r"cameras", views.CameraViewSet)
-router.register(r"outlets", views.OutletViewSet)
-router.register(r"records", views.RecordViewSet)
+router.register(r"api/cameras", views.CameraViewSet)
+router.register(r"api/outlets", views.OutletViewSet)
+router.register(r"api/records", views.RecordViewSet)
 
 urlpatterns = [
     path("", include(router.urls)),

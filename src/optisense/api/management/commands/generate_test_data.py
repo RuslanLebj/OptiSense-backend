@@ -35,6 +35,33 @@ class Command(BaseCommand):
                 polygons.append({"id": i + 1, "points": points})
             roi_polygons_points = ROIPolygonsPointsSchema(polygons=polygons).model_dump()
 
+
+            # Генерация start_time и end_time
+            start_time = fake.time()  # Random start time
+            end_time = fake.time()  # Random end time
+            # Ensure end_time is later than start_time
+            if start_time > end_time:
+                start_time, end_time = end_time, start_time
+
+
+            # Генерация parameter_limits с максимальными значениями
+            parameter_limits = {}
+            if parameter_types_data.get("queue_length"):
+                parameter_limits["queue_length"] = random.randint(5, 20)  # max queue length from 5 to 20
+            else:
+                parameter_limits["queue_length"] = None
+
+            if parameter_types_data.get("service_duration"):
+                parameter_limits["service_duration"] = random.uniform(120, 600)  # max service duration from 120 to 600 seconds
+            else:
+                parameter_limits["service_duration"] = None
+
+            if parameter_types_data.get("has_earrings"):
+                parameter_limits["has_earrings"] = True  # For has_earrings, the limit is always False
+            else:
+                parameter_limits["has_earrings"] = None
+
+
             # Создание камеры с parameter_types и roi_polygons_points
             camera = Camera.objects.create(
                 outlet=random.choice(outlets),
@@ -46,6 +73,9 @@ class Command(BaseCommand):
                 is_active=fake.boolean(),
                 parameter_types=parameter_types,
                 roi_polygons_points=roi_polygons_points,
+                start_time=start_time,
+                end_time=end_time,
+                parameter_limits=parameter_limits
             )
             cameras.append(camera)
         self.stdout.write(self.style.SUCCESS(f"Created {len(cameras)} cameras."))
