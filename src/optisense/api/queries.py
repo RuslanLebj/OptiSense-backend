@@ -54,6 +54,7 @@ def aggregate_indicators(
             - group_by не входит в допустимые значения,
             - aggregate_type не входит в допустимые значения,
             - start_date > end_date.
+            - значения часов вне диапазона 0–23.
     """
     if not indicator_key:
         raise ValueError("Missing required 'indicator' query parameter.")
