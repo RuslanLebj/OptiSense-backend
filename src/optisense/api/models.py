@@ -19,9 +19,9 @@ class Camera(models.Model):
     start_time = models.TimeField(blank=True, null=True)
     end_time = models.TimeField(blank=True, null=True)
     is_active = models.BooleanField()
-    parameter_types = models.JSONField(blank=True, null=True)
-    parameter_limits = models.JSONField(blank=True, null=True)
-    roi_polygons_points = models.JSONField(blank=True, null=True)
+    indicators_status = models.JSONField(blank=True, null=True)
+    indicators_threshold = models.JSONField(blank=True, null=True)
+    roi_polygons = models.JSONField(blank=True, null=True)
 
     class Meta:
         # managed = False
@@ -41,7 +41,7 @@ class Record(models.Model):
     record_time = models.DateTimeField()
     record_video = models.CharField(max_length=255, blank=True, null=True)
     record_frame = models.CharField(max_length=255, blank=True, null=True)
-    parameters = models.JSONField(blank=True, null=True)
+    indicators_value = models.JSONField(blank=True, null=True)
 
     class Meta:
         # managed = False

@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from .models import Camera, Outlet, Record
 from pydantic import ValidationError as PydanticValidationError
-from .schemas import ROIPolygonsPointsSchema, ParameterTypesSchema, ParametersSchema
+from .schemas import ROIPolygonsSchema, IndicatorsStatusSchema, IndicatorsSchema
 
 
 class OutletSerializer(serializers.ModelSerializer):
@@ -25,50 +25,48 @@ class CameraSerializer(serializers.ModelSerializer):
             "start_time",
             "end_time",
             "is_active",
-            "parameter_types",
-            "parameter_limits",
-            "roi_polygons_points",
+            "indicators_status",
+            "indicators_threshold",
+            "roi_polygons",
             "outlet_detail",
         ]
 
     @staticmethod
-    def validate_roi_polygons_points(value):
+    def validate_roi_polygons(value):
         """
-        Validate roi_polygons_points field using Pydantic.
+        Validate roi_polygons field using Pydantic.
         """
         if value:
             try:
-                ROIPolygonsPointsSchema.model_validate(value)
+                ROIPolygonsSchema.model_validate(value)
+            except PydanticValidationError as e:
+                raise serializers.ValidationError(f"ROI Polygons validation error: {e}")
+        return value
+
+    @staticmethod
+    def validate_indicators_status(value):
+        """
+        Validate indicators_status field using Pydantic.
+        """
+        if value:
+            try:
+                IndicatorsStatusSchema.model_validate(value)
             except PydanticValidationError as e:
                 raise serializers.ValidationError(
-                    f"ROI Polygons Points validation error: {e}"
+                    f"Indicators status validation error: {e}"
                 )
         return value
 
     @staticmethod
-    def validate_parameter_types(value):
+    def validate_indicators_threshold(value):
         """
-        Validate parameter_types field using Pydantic.
-        """
-        if value:
-            try:
-                ParameterTypesSchema.model_validate(value)
-            except PydanticValidationError as e:
-                raise serializers.ValidationError(
-                    f"Parameter Types validation error: {e}"
-                )
-        return value
-
-    @staticmethod
-    def validate_parameter_limits(value):
-        """
-        Validate parameter limits field using Pydantic.
+        Validate indicators threshold field using Pydantic.
         """
         if value:
             try:
-                ParametersSchema.model_validate(value)
+                IndicatorsSchema.model_validate(value)
             except PydanticValidationError as e:
-                raise serializers.ValidationError(f"Parameters validation error: {e}")
+                raise serializers.ValidationError(f"Indicators threshold validation error: {e}")
         return value
 
 
@@ -78,13 +76,13 @@ class RecordSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
     @staticmethod
-    def validate_parameters(value):
+    def validate_indicators_value(value):
         """
-        Validate parameters field using Pydantic.
+        Validate indicators value field using Pydantic.
         """
         if value:
             try:
-                ParametersSchema.model_validate(value)
+                IndicatorsSchema.model_validate(value)
             except PydanticValidationError as e:
-                raise serializers.ValidationError(f"Parameters validation error: {e}")
+                raise serializers.ValidationError(f"Indicators value validation error: {e}")
         return value
