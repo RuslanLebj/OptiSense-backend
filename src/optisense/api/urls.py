@@ -1,6 +1,5 @@
 from rest_framework.routers import DefaultRouter
 from django.urls import path, include
-from . import views
 from drf_spectacular.views import (
     SpectacularAPIView,
     SpectacularSwaggerView,
@@ -11,6 +10,8 @@ from rest_framework_simplejwt.views import (
     TokenRefreshView,
     TokenVerifyView,
 )
+
+from . import views
 
 
 router = DefaultRouter()

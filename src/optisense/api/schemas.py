@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import Optional, List
+from typing import List
 
 
 class PointSchema(BaseModel):
@@ -66,17 +66,17 @@ class IndicatorsSchema(BaseModel):
     Схема для `indicators`, хранящая значения отслеживаемых параметров или пороговые значения для них.
 
     Attributes:
-        queue_length (Optional[int]): Длина очереди, если отслеживается.
-        service_duration (Optional[float]): Время обслуживания клиента в секундах, если отслеживается.
-        jewelry_absent (Optional[bool]): Отсутствие украшений у сотрудника, если отслеживается.
+        queue_length (int | None): Длина очереди, если отслеживается.
+        service_duration (float | None): Время обслуживания клиента в секундах, если отслеживается.
+        jewelry_absent (bool | None): Отсутствие украшений у сотрудника, если отслеживается.
     """
 
-    queue_length: Optional[int] = Field(
+    queue_length: int | None = Field(
         None, description="Длина очереди, если отслеживается"
     )
-    service_duration: Optional[float] = Field(
+    service_duration: float | None = Field(
         None, description="Время обслуживания клиента в секундах, если отслеживается"
     )
-    jewelry_absent: Optional[bool] = Field(
+    jewelry_absent: bool | None = Field(
         None, description="Отсутствие украшений у сотрудника, если отслеживается"
     )

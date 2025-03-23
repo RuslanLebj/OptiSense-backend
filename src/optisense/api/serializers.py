@@ -1,6 +1,7 @@
 from rest_framework import serializers
-from .models import Camera, Outlet, Record
 from pydantic import ValidationError as PydanticValidationError
+
+from .models import Camera, Outlet, Record
 from .schemas import ROIPolygonsSchema, IndicatorsStatusSchema, IndicatorsSchema
 
 
