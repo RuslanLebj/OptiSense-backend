@@ -1,4 +1,4 @@
-from django.db.models import Avg, Max, Min, FloatField
+from django.db.models import Avg, Max, Min, FloatField, QuerySet
 from django.db.models.functions import TruncDay, TruncWeek, TruncMonth
 from django.db.models.expressions import RawSQL
 from typing import Final
@@ -18,7 +18,7 @@ AGGREGATE_FUNCTIONS: Final = {
 
 
 def aggregate_indicators(
-    queryset,
+    queryset: QuerySet,
     group_by: str,
     indicator_key: str,
     aggregate_type: str,
@@ -26,7 +26,7 @@ def aggregate_indicators(
     end_date: str | None = None,
     exclude_hour_start: str | None = None,
     exclude_hour_end: str | None = None,
-):
+) -> QuerySet:
     """
     Агрегирует значения (среднее, максимум, минимум) указанного показателя (из JSONField `indicators_value`),
     сгруппированные по периоду: дням, неделям или месяцам.
