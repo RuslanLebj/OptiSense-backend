@@ -1,12 +1,12 @@
 services:
 
   nginx:
-    image: nginx:latest
+    image: nginx:alpine
     container_name: optisense-nginx
     ports:
       - "80:80"
     volumes:
-      - ./nginx.conf:/etc/nginx/nginx.conf  # Конфигурация Nginx
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf  # Конфигурация Nginx
       - ../src/optisense/static:/opt/app/src/optisense/static  # Путь к статическим файлам
     depends_on:
       - optisense
