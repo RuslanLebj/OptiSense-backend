@@ -1,95 +1,71 @@
 from django_filters import rest_framework as filters
 from rest_framework import viewsets
-from django.db.models.expressions import RawSQL
+from rest_framework.response import Response
+from rest_framework.decorators import action
+from rest_framework.request import Request
+from rest_framework.status import HTTP_400_BAD_REQUEST
+
 from .models import Camera, Outlet, Record
 from .serializers import (
     CameraSerializer,
     OutletSerializer,
     RecordSerializer,
 )
-from django.db.models import Avg, FloatField
-from django.db.models.functions import TruncDay, TruncWeek, TruncMonth
-from rest_framework.response import Response
-from rest_framework.decorators import action
+from .filters import CameraFilter, RecordFilter
+from .queries import aggregate_indicators
 
 
-class OutletViewSet(viewsets.ModelViewSet):
+class FilteredModelViewSet(viewsets.ModelViewSet):
+    """
+    Базовый класс для ViewSet c фильтрами.
+    """
+
+    filter_backends = [filters.DjangoFilterBackend]
+
+
+class OutletViewSet(FilteredModelViewSet):
     queryset = Outlet.objects.all()
     serializer_class = OutletSerializer
 
 
-class CameraFilter(filters.FilterSet):
-    outlet = filters.NumberFilter(field_name="outlet")
-
-    class Meta:
-        model = Camera
-        fields = ["outlet"]
-
-
-class CameraViewSet(viewsets.ModelViewSet):
+class CameraViewSet(FilteredModelViewSet):
     queryset = Camera.objects.all()
     serializer_class = CameraSerializer
-    filter_backends = [filters.DjangoFilterBackend]
     filterset_class = CameraFilter
 
 
-class RecordFilter(filters.FilterSet):
-    camera = filters.NumberFilter(field_name="camera")
-    outlet = filters.NumberFilter(field_name="camera__outlet")
-
-    class Meta:
-        model = Record
-        fields = ["camera", "outlet"]
-
-
-class RecordViewSet(viewsets.ModelViewSet):
+class RecordViewSet(FilteredModelViewSet):
     queryset = Record.objects.all()
     serializer_class = RecordSerializer
-    filter_backends = [filters.DjangoFilterBackend]
     filterset_class = RecordFilter
 
-    def get_queryset(self):
-        """
-        Apply filters defined in RecordFilter to the queryset.
-        """
-        queryset = super().get_queryset()
-        return queryset
-
     @action(detail=False, methods=["get"])
-    def averages(self, request):
+    def aggregates(self, request: Request):
         """
-        Custom action to calculate averages grouped by day, week, or month for a specific parameter.
+        Агрегирует значения (avg, max, min) для указанного показателя,
+        сгруппированные по дням, неделям или месяцам.
         """
-        queryset = self.filter_queryset(self.get_queryset())
+        filtered_qs = self.filter_queryset(self.get_queryset())
+
         group_by = request.query_params.get("group_by", "day").lower()
-        parameter_key = request.query_params.get("parameter", None)
+        indicator_key = request.query_params.get("indicator")
+        aggregate_type = request.query_params.get("aggregate_type", "avg").lower()
+        start_date = request.query_params.get("start_date", "")
+        end_date = request.query_params.get("end_date", "")
+        exclude_hour_start = request.query_params.get("exclude_hour_start", "")
+        exclude_hour_end = request.query_params.get("exclude_hour_end", "")
 
-        if not parameter_key:
-            return Response({"error": "Missing required 'parameter' query parameter."}, status=400)
-
-        group_options = {
-            "day": TruncDay,
-            "week": TruncWeek,
-            "month": TruncMonth,
-        }
-
-        if group_by not in group_options:
-            return Response(
-                {"error": "Invalid 'group_by' value. Choose from 'day', 'week', or 'month'."},
-                status=400,
+        try:
+            data = aggregate_indicators(
+                queryset=filtered_qs,
+                group_by=group_by,
+                indicator_key=indicator_key,
+                aggregate_type=aggregate_type,
+                start_date=start_date,
+                end_date=end_date,
+                exclude_hour_start=exclude_hour_start,
+                exclude_hour_end=exclude_hour_end,
             )
-
-        trunc_func = group_options[group_by]
-
-        parameter_value = RawSQL(
-            f"(parameters ->> %s)::float", (parameter_key,), output_field=FloatField()
-        )
-
-        values = (
-            queryset.annotate(period=trunc_func("record_time"))
-            .values("period")
-            .annotate(value=Avg(parameter_value))
-            .order_by("period")
-        )
-
-        return Response({"values": values})
+            return Response({"values": data})
+        except ValueError as e:
+            return Response({"error": str(e)}, status=HTTP_400_BAD_REQUEST)
