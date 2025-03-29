@@ -82,9 +82,15 @@ def aggregate_indicators(
         queryset = queryset.filter(record_time__range=(start_date_dt, end_date_dt))
 
     exclude_hour_start = (
-        int(exclude_hour_start) if exclude_hour_start is not None else None
+        int(exclude_hour_start)
+        if exclude_hour_start is not None and exclude_hour_start != ""
+        else None
     )
-    exclude_hour_end = int(exclude_hour_end) if exclude_hour_end is not None else None
+    exclude_hour_end = (
+        int(exclude_hour_end)
+        if exclude_hour_end is not None and exclude_hour_end != ""
+        else None
+    )
 
     if (exclude_hour_start is not None and not (0 <= exclude_hour_start <= 23)) or (
         exclude_hour_end is not None and not (0 <= exclude_hour_end <= 23)
