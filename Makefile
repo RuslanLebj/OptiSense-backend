@@ -3,7 +3,7 @@
 up: # поднять контейнеры
 	docker compose -f docker/docker-compose.yaml -p optisense up -d --force-recreate --remove-orphans || true
 
-restart: # перезапустить контейнеры в режиме разработки
+restart: # перезапустить контейнеры
 	docker compose -f docker/docker-compose.yaml -p optisense restart
 
 down: # остановить и удалить контейнеры
