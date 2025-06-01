@@ -23,7 +23,6 @@ class Command(BaseCommand):
             indicators_status_data = {
                 "queue_length": random.choice([True, False]),
                 "service_duration": random.choice([True, False]),
-                "jewelry_absent": random.choice([True, False]),
             }
             indicators_status = IndicatorsStatusSchema(**indicators_status_data).model_dump()
 
@@ -55,11 +54,6 @@ class Command(BaseCommand):
                 indicators_threshold["service_duration"] = random.uniform(120, 600)  # max service duration from 120 to 600 seconds
             else:
                 indicators_threshold["service_duration"] = None
-
-            if indicators_status_data.get("jewelry_absent"):
-                indicators_threshold["jewelry_absent"] = True  # For jewelry_absent, the limit is always False
-            else:
-                indicators_threshold["jewelry_absent"] = None
 
 
             # Создание камеры
@@ -93,18 +87,13 @@ class Command(BaseCommand):
                 if camera.indicators_status.get("service_duration"):
                     indicators_value["service_duration"] = random.uniform(30, 600)  # Время обслуживания от 30 до 600 секунд
 
-                if camera.indicators_status.get("jewelry_absent"):
-                    indicators_value["jewelry_absent"] = random.choice([True, False])  # Случайно True или False
-
                 # Если indicators_value пустой, добавляем один случайный параметр
                 if not indicators_value:
-                    indicators_to_add = random.choice(["queue_length", "service_duration", "jewelry_absent"])
+                    indicators_to_add = random.choice(["queue_length", "service_duration"])
                     if indicators_to_add == "queue_length":
                         indicators_value["queue_length"] = random.randint(0, 20)
                     elif indicators_to_add == "service_duration":
                         indicators_value["service_duration"] = random.uniform(30, 600)
-                    elif indicators_to_add == "jewelry_absent":
-                        indicators_value["jewelry_absent"] = random.choice([True, False])
 
                 # Создаем запись с timezone-aware datetime
                 record = Record.objects.create(
