@@ -49,15 +49,11 @@ class IndicatorsStatusSchema(BaseModel):
     Attributes:
         queue_length (bool): Отслеживание длины очереди.
         service_duration (bool): Отслеживание времени обслуживания клиента.
-        jewelry_absent (bool): Отслеживание отсутствия украшений у сотрудника.
     """
 
     queue_length: bool = Field(..., description="Отслеживание длины очереди")
     service_duration: bool = Field(
         ..., description="Отслеживание времени обслуживания клиента"
-    )
-    jewelry_absent: bool = Field(
-        ..., description="Отслеживание отсутствия украшений у сотрудника"
     )
 
 
@@ -68,7 +64,6 @@ class IndicatorsSchema(BaseModel):
     Attributes:
         queue_length (int | None): Длина очереди, если отслеживается.
         service_duration (float | None): Время обслуживания клиента в секундах, если отслеживается.
-        jewelry_absent (bool | None): Отсутствие украшений у сотрудника, если отслеживается.
     """
 
     queue_length: int | None = Field(
@@ -76,7 +71,4 @@ class IndicatorsSchema(BaseModel):
     )
     service_duration: float | None = Field(
         None, description="Время обслуживания клиента в секундах, если отслеживается"
-    )
-    jewelry_absent: bool | None = Field(
-        None, description="Отсутствие украшений у сотрудника, если отслеживается"
     )

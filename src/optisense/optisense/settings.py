@@ -50,6 +50,7 @@ INSTALLED_APPS = [
     "drf_spectacular",
     "rest_framework_simplejwt",
     "api",
+    "rest_framework_api_key",
 ]
 
 MIDDLEWARE = [
@@ -153,11 +154,12 @@ REST_FRAMEWORK = {
     "DEFAULT_FILTER_BACKENDS": ["django_filters.rest_framework.DjangoFilterBackend"],
     # Разрешения и аутентификация в зависимости от DEBUG
     "DEFAULT_AUTHENTICATION_CLASSES": [
-        "rest_framework_simplejwt.authentication.JWTAuthentication"
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
+        "optisense.common.authentications.APIKeyAuthentication",
     ],
     "DEFAULT_PERMISSION_CLASSES": [
         (
-            "rest_framework.permissions.IsAuthenticated"
+            "optisense.common.permissions.CustomPermission"
             if not DEBUG
             else "rest_framework.permissions.AllowAny"
         ),
@@ -175,4 +177,9 @@ SIMPLE_JWT = {
     "BLACKLIST_AFTER_ROTATION": True,
     "ALGORITHM": "HS256",
     "SIGNING_KEY": env("JWT_SIGNING_KEY", default="default-key-for-dev"),
+}
+
+SPECTACULAR_SETTINGS = {
+    "TITLE": "OptiSense API",
+    "VERSION": "1.0.0",
 }

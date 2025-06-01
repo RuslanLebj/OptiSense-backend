@@ -39,8 +39,6 @@ class Outlet(models.Model):
 class Record(models.Model):
     camera = models.ForeignKey(Camera, models.DO_NOTHING)
     record_time = models.DateTimeField()
-    record_video = models.CharField(max_length=255, blank=True, null=True)
-    record_frame = models.CharField(max_length=255, blank=True, null=True)
     indicators_value = models.JSONField(blank=True, null=True)
 
     class Meta:
