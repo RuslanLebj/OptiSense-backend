@@ -99,8 +99,6 @@ class Command(BaseCommand):
                 record = Record.objects.create(
                     camera=camera,
                     record_time=timezone.make_aware(fake.date_time_this_year(), timezone.get_current_timezone()),
-                    record_video=fake.file_path(extension="mp4"),
-                    record_frame=fake.file_path(extension="jpg"),
                     indicators_value=IndicatorsSchema(**indicators_value).model_dump(),
                 )
                 records.append(record)
