@@ -31,8 +31,12 @@ DEBUG = env.bool("DEBUG", default=False)
 
 ALLOWED_HOSTS = env("ALLOWED_HOSTS", default="localhost").split(",")
 
+CSRF_TRUSTED_ORIGINS = env(
+    "CSRF_TRUSTED_ORIGINS", default="http://0.0.0.0:8080"
+).split(",")
+
 CORS_ALLOWED_ORIGINS = env(
-    "CORS_ALLOWED_ORIGINS", default="http://localhost:5173"
+    "CORS_ALLOWED_ORIGINS", default="http://0.0.0.0:8080"
 ).split(",")
 
 # Application definition
