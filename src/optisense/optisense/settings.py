@@ -155,7 +155,6 @@ REST_FRAMEWORK = {
     # Разрешения и аутентификация в зависимости от DEBUG
     "DEFAULT_AUTHENTICATION_CLASSES": [
         "rest_framework_simplejwt.authentication.JWTAuthentication",
-        "optisense.common.authentications.APIKeyAuthentication",
     ],
     "DEFAULT_PERMISSION_CLASSES": [
         (
