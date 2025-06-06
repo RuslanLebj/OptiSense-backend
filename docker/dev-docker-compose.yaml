@@ -23,6 +23,8 @@ services:
     environment:
       - PYTHONUNBUFFERED=1
       - DEBUG=True
+    networks:
+      - optinet
 
   optisense-db:
     container_name: optisense-db
@@ -36,3 +38,11 @@ services:
       retries: 100
     env_file:
       - postgres/local.env
+    networks:
+      - optinet
+
+
+networks:
+  optinet:
+    name: "optinet-network"
+    driver: bridge

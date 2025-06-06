@@ -10,6 +10,8 @@ services:
       - ../src/optisense/static:/opt/app/src/optisense/static  # Путь к статическим файлам
     depends_on:
       - optisense
+    networks:
+      - optinet
 
   optisense:
     container_name: optisense-app
@@ -35,6 +37,8 @@ services:
     environment:
       - PYTHONUNBUFFERED=1
       - DEBUG=False
+    networks:
+      - optinet
 
   optisense-db:
     container_name: optisense-db
@@ -48,3 +52,11 @@ services:
       retries: 100
     env_file:
       - postgres/local.env
+    networks:
+      - optinet
+
+
+networks:
+  optinet:
+    name: "optinet-network"
+    driver: bridge
