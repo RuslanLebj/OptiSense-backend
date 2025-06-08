@@ -39,6 +39,10 @@ CORS_ALLOWED_ORIGINS = env(
     "CORS_ALLOWED_ORIGINS", default="http://0.0.0.0:8080"
 ).split(",")
 
+TELEGRAM_BOT_TOKEN = env("TELEGRAM_BOT_TOKEN")
+
+TELEGRAM_CHAT_ID = env("TELEGRAM_CHAT_ID")
+
 # Application definition
 
 INSTALLED_APPS = [
@@ -55,6 +59,7 @@ INSTALLED_APPS = [
     "rest_framework_simplejwt",
     "api",
     "rest_framework_api_key",
+    "request_logging",
 ]
 
 MIDDLEWARE = [
@@ -66,6 +71,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "request_logging.middleware.LoggingMiddleware",
 ]
 
 ROOT_URLCONF = "optisense.urls"
@@ -185,4 +191,28 @@ SIMPLE_JWT = {
 SPECTACULAR_SETTINGS = {
     "TITLE": "OptiSense API",
     "VERSION": "1.0.0",
+}
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "simple": {
+            "format": "[{asctime}] {levelname} {name}: {message}",
+            "style": "{",
+        },
+    },
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": "simple",
+        },
+    },
+    "loggers": {
+        "django.request": {
+            "handlers": ["console"],
+            "level": "INFO",
+            "propagate": False,
+        },
+    },
 }

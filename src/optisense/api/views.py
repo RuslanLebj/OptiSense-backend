@@ -1,5 +1,5 @@
 from django_filters import rest_framework as filters
-from rest_framework import viewsets
+from rest_framework import viewsets, status
 from rest_framework.response import Response
 from rest_framework.decorators import action
 from rest_framework.request import Request
@@ -13,6 +13,11 @@ from .serializers import (
 )
 from .filters import CameraFilter, RecordFilter
 from .queries import aggregate_indicators
+from .handlers.threshold import ThresholdHandler
+from .telegram.adapter import TelegramAdapter
+
+telegram_adapter = TelegramAdapter()
+threshold_handler = ThresholdHandler(telegram_adapter=telegram_adapter)
 
 
 class FilteredModelViewSet(viewsets.ModelViewSet):
@@ -38,6 +43,13 @@ class RecordViewSet(FilteredModelViewSet):
     queryset = Record.objects.all()
     serializer_class = RecordSerializer
     filterset_class = RecordFilter
+
+    threshold_handler = threshold_handler
+
+    def perform_create(self, serializer):
+        record = serializer.save()
+        self.threshold_handler.handle(record)
+        return record
 
     @action(detail=False, methods=["get"])
     def aggregates(self, request: Request):

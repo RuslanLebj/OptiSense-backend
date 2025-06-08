@@ -20,6 +20,9 @@ pydantic = "^2.9.2"
 django-filter = "^24.3"
 djangorestframework-simplejwt = "^5.3.1"
 djangorestframework-api-key = "^3.1.0"
+requests = "^2.32.3"
+django-request-logging = "^0.7.5"
+httpx = "^0.28.1"
 
 
 [build-system]
