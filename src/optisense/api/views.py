@@ -173,6 +173,7 @@ class RecordViewSet(FilteredModelViewSet):
 
         # 7) Отдаём CSV
         resp = HttpResponse(content_type="text/csv")
+        resp["Access-Control-Expose-Headers"] = "Content-Disposition"
         resp["Content-Disposition"] = f'attachment; filename="{filename}"'
         writer = csv.writer(resp)
         writer.writerow(["interval", "avg", "max", "min"])
