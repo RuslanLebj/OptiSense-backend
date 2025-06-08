@@ -1,9 +1,18 @@
 from django_filters import rest_framework as filters
-from rest_framework import viewsets, status
-from rest_framework.response import Response
+from rest_framework import viewsets
+import csv
+from django.http import HttpResponse
+from django.db.models import Avg, Max, Min, FloatField
+from django.utils import timezone
+from django.db.models.expressions import RawSQL
 from rest_framework.decorators import action
 from rest_framework.request import Request
 from rest_framework.status import HTTP_400_BAD_REQUEST
+from rest_framework.response import Response
+from datetime import timedelta
+from django.db.models.functions import ExtractHour
+from unidecode import unidecode
+from zoneinfo import ZoneInfo
 
 from .models import Camera, Outlet, Record
 from .serializers import (
@@ -81,3 +90,94 @@ class RecordViewSet(FilteredModelViewSet):
             return Response({"values": data})
         except ValueError as e:
             return Response({"error": str(e)}, status=HTTP_400_BAD_REQUEST)
+
+    @action(detail=False, methods=["get"], url_path="aggregates/csv")
+    def aggregates_csv(self, request: Request):
+        """
+        CSV с avg/max/min по каждому часовому интервалу смены камеры.
+        Параметры:
+          • camera (id камеры), indicator (ключ JSON) — обязательны
+          • group_by — one of 'day', 'week', 'month' (по умолчанию 'day')
+        """
+        cam_id = request.query_params.get("camera")
+        indicator = request.query_params.get("indicator")
+        group_by = request.query_params.get("group_by", "day")
+
+        if not all([cam_id, indicator]) or group_by not in ("day", "week", "month"):
+            return Response(
+                {"error": "Нужны camera, indicator и корректный group_by (day|week|month)."},
+                status=HTTP_400_BAD_REQUEST,
+            )
+
+        # 1) Получаем камеру
+        try:
+            camera = Camera.objects.select_related("outlet").get(pk=cam_id)
+        except Camera.DoesNotExist:
+            return Response(
+                {"error": f"Камера id={cam_id} не найдена."},
+                status=HTTP_400_BAD_REQUEST,
+            )
+
+        # 2) Вычисляем период
+        now = timezone.now()
+        if group_by == "day":
+            start = now - timedelta(days=1)
+        elif group_by == "week":
+            start = now - timedelta(weeks=1)
+        else:  # month
+            start = now - timedelta(days=30)
+        end = now
+
+        # 3) Фильтрация записей по периоду и смене камеры
+        qs = (
+            self.filter_queryset(self.get_queryset())
+            .filter(record_time__range=(start, end))
+        )
+        if camera.start_time and camera.end_time:
+            qs = qs.filter(
+                record_time__time__gte=camera.start_time,
+                record_time__time__lt=camera.end_time,
+            )
+
+        # 4) Считаем агрегаты по часам
+        expr = RawSQL(
+            "(indicators_value ->> %s)::float",
+            (indicator,),
+            output_field=FloatField(),
+        )
+        agg = (
+            qs
+            .annotate(hour=ExtractHour("record_time"))
+            .values("hour")
+            .annotate(
+                avg=Avg(expr),
+                max=Max(expr),
+                min=Min(expr),
+            )
+            .order_by("hour")
+        )
+        data_map = {row["hour"]: row for row in agg}
+
+        # 5) Формируем список всех интервалов смены камеры
+        h_start = camera.start_time.hour if camera.start_time else 0
+        h_end = camera.end_time.hour if camera.end_time else 24
+        intervals = list(range(h_start, h_end))
+
+        ## 6) Формируем безопасное ASCII имя + добавляем метку времени по ЕКБ
+        ekb_tz = ZoneInfo("Asia/Yekaterinburg")
+        now_ekb = now.astimezone(ekb_tz)
+        ts = now_ekb.strftime("%Y%m%d_%H%M%S")
+        base_raw = f"{camera.outlet.address}-{camera.name}"
+        base = unidecode(base_raw).replace(" ", "_")
+        filename = f"{base}-{group_by}-{ts}.csv"
+
+        # 7) Отдаём CSV
+        resp = HttpResponse(content_type="text/csv")
+        resp["Content-Disposition"] = f'attachment; filename="{filename}"'
+        writer = csv.writer(resp)
+        writer.writerow(["interval", "avg", "max", "min"])
+        for h in intervals:
+            row = data_map.get(h, {"avg": 0, "max": 0, "min": 0})
+            label = f"{h}:00 - {h + 1}:00"
+            writer.writerow([label, row["avg"], row["max"], row["min"]])
+        return resp
