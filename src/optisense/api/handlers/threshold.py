@@ -19,7 +19,6 @@ class ThresholdHandler:
         "service_duration": "время обслуживания",
     }
     COOLDOWN_SECONDS = 300
-    TIMEZONE = ZoneInfo("Asia/Yekaterinburg")
 
     def __init__(
         self, telegram_adapter: TelegramAdapter = None,
@@ -63,18 +62,17 @@ class ThresholdHandler:
         if not alerts:
             return
 
-        local_dt = record.record_time.astimezone(self.TIMEZONE)
-        date_str = local_dt.strftime("%d-%m-%Y")
-        time_str = local_dt.strftime("%H:%M:%S")
+        date_str = record.record_time.strftime("%d-%m-%Y")
+        time_str = record.record_time.strftime("%H:%M:%S")
 
         lines = [
-            "🚨 *Пороговые значения превышены!* 🚨",
+            "🚨 *Пороговые значения достигнуты!* 🚨",
             f"📍 *Адрес*: {camera.outlet.address}",
             f"🎥 *Камера*: {camera.name}",
             f"🗓️ *Дата*: {date_str}",
             f"⏰ *Время*: {time_str}",
             "",
-            "📊 *Показатели*, вышедшие за порог:",
+            "📊 *Показатели*, достигшие порога:",
         ]
         for key, curr, thresh in alerts:
             name = self.INDICATORS_NAMES_MAP.get(key, key)

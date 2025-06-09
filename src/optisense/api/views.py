@@ -12,7 +12,6 @@ from rest_framework.response import Response
 from datetime import timedelta
 from django.db.models.functions import ExtractHour
 from unidecode import unidecode
-from zoneinfo import ZoneInfo
 from django.db.models.functions import TruncMinute
 
 from .models import Camera, Outlet, Record
@@ -128,7 +127,7 @@ class RecordViewSet(FilteredModelViewSet):
             start = now - timedelta(days=1)
         elif group_by == "week":
             start = now - timedelta(weeks=1)
-        else:  # month
+        else:
             start = now - timedelta(days=30)
         end = now
 
@@ -166,9 +165,7 @@ class RecordViewSet(FilteredModelViewSet):
         intervals = list(range(h_start, h_end))
 
         ## 6) Формируем безопасное ASCII имя + добавляем метку времени по ЕКБ
-        ekb_tz = ZoneInfo("Asia/Yekaterinburg")
-        now_ekb = now.astimezone(ekb_tz)
-        ts = now_ekb.strftime("%Y%m%d_%H%M%S")
+        ts = now.strftime("%Y%m%d_%H%M%S")
         base_raw = f"{camera.outlet.address}-{camera.name}"
         base = unidecode(base_raw).replace(" ", "_")
         filename = f"{base}-{group_by}-{ts}.csv"
@@ -236,6 +233,9 @@ class RecordViewSet(FilteredModelViewSet):
             .order_by("minute", "record_time")
             .distinct("minute")
         )
+
+        # 4) разворачиваем — от новой минуты к старой
+        history_qs = history_qs.order_by("-minute")
 
         serializer = HistoryRecordSerializer(history_qs, many=True)
         return Response(serializer.data)
