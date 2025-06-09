@@ -13,12 +13,14 @@ from datetime import timedelta
 from django.db.models.functions import ExtractHour
 from unidecode import unidecode
 from zoneinfo import ZoneInfo
+from django.db.models.functions import TruncMinute
 
 from .models import Camera, Outlet, Record
 from .serializers import (
     CameraSerializer,
     OutletSerializer,
     RecordSerializer,
+    HistoryRecordSerializer,
 )
 from .filters import CameraFilter, RecordFilter
 from .queries import aggregate_indicators
@@ -105,7 +107,9 @@ class RecordViewSet(FilteredModelViewSet):
 
         if not all([cam_id, indicator]) or group_by not in ("day", "week", "month"):
             return Response(
-                {"error": "Нужны camera, indicator и корректный group_by (day|week|month)."},
+                {
+                    "error": "Нужны camera, indicator и корректный group_by (day|week|month)."
+                },
                 status=HTTP_400_BAD_REQUEST,
             )
 
@@ -129,9 +133,8 @@ class RecordViewSet(FilteredModelViewSet):
         end = now
 
         # 3) Фильтрация записей по периоду и смене камеры
-        qs = (
-            self.filter_queryset(self.get_queryset())
-            .filter(record_time__range=(start, end))
+        qs = self.filter_queryset(self.get_queryset()).filter(
+            record_time__range=(start, end)
         )
         if camera.start_time and camera.end_time:
             qs = qs.filter(
@@ -146,8 +149,7 @@ class RecordViewSet(FilteredModelViewSet):
             output_field=FloatField(),
         )
         agg = (
-            qs
-            .annotate(hour=ExtractHour("record_time"))
+            qs.annotate(hour=ExtractHour("record_time"))
             .values("hour")
             .annotate(
                 avg=Avg(expr),
@@ -182,3 +184,58 @@ class RecordViewSet(FilteredModelViewSet):
             label = f"{h}:00 - {h + 1}:00"
             writer.writerow([label, row["avg"], row["max"], row["min"]])
         return resp
+
+    @action(detail=False, methods=["get"], url_path="history")
+    def history(self, request: Request):
+        """
+        По одной (первой) записи на каждую минуту за последние 60 минут.
+        Если в окне нет записей, окно смещается к последней доступной записи.
+        """
+        now = timezone.now()
+        window_start = now - timedelta(minutes=60)
+
+        qs = self.filter_queryset(self.get_queryset())
+
+        # фильтр по камере
+        cam = request.query_params.get("camera")
+        if cam:
+            try:
+                qs = qs.filter(camera_id=int(cam))
+            except ValueError:
+                return Response(
+                    {"error": "Invalid camera id"}, status=HTTP_400_BAD_REQUEST
+                )
+
+        # фильтр по индикатору
+        indic = request.query_params.get("indicator")
+        valid = {"queue_length", "service_duration"}
+        if indic:
+            if indic not in valid:
+                return Response(
+                    {"error": f"Invalid indicator, must be one of {valid}"},
+                    status=HTTP_400_BAD_REQUEST,
+                )
+            qs = qs.filter(**{f"indicators_value__{indic}__isnull": False})
+
+        # 1) пытаемся взять за последние 60 минут
+        subset = qs.filter(record_time__gte=window_start)
+
+        # 2) если пусто — откатываем окно к последней записи
+        if not subset.exists():
+            last = qs.order_by("-record_time").first()
+            if not last:
+                return Response([])
+            end = last.record_time
+            start = end - timedelta(minutes=60)
+            subset = qs.filter(record_time__gte=start, record_time__lte=end)
+
+        # 3) берём первую запись каждой минуты
+        history_qs = (
+            subset
+            .annotate(minute=TruncMinute("record_time"))
+            .order_by("minute", "record_time")
+            .distinct("minute")
+        )
+
+        serializer = HistoryRecordSerializer(history_qs, many=True)
+        return Response(serializer.data)

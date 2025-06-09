@@ -87,3 +87,18 @@ class RecordSerializer(serializers.ModelSerializer):
             except PydanticValidationError as e:
                 raise serializers.ValidationError(f"Indicators value validation error: {e}")
         return value
+
+
+class HistoryRecordSerializer(serializers.ModelSerializer):
+    address = serializers.CharField(source="camera.outlet.address")
+
+    class Meta:
+        model = Record
+        fields = (
+            "id",
+            "camera",
+            "record_time",
+            "indicators_value",
+            "frame",
+            "address",
+        )
