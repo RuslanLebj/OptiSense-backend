@@ -1,6 +1,7 @@
 import logging
 import time
 from collections import defaultdict
+from zoneinfo import ZoneInfo
 
 from ..models import Record
 from ..telegram.adapter import TelegramAdapter
@@ -18,6 +19,7 @@ class ThresholdHandler:
         "service_duration": "время обслуживания",
     }
     COOLDOWN_SECONDS = 300
+    TIMEZONE = ZoneInfo("Asia/Yekaterinburg")
 
     def __init__(
         self, telegram_adapter: TelegramAdapter = None,
@@ -61,8 +63,9 @@ class ThresholdHandler:
         if not alerts:
             return
 
-        date_str = record.record_time.strftime("%d-%m-%Y")
-        time_str = record.record_time.strftime("%H:%M:%S")
+        local_dt = record.record_time.astimezone(self.TIMEZONE)
+        date_str = local_dt.strftime("%d-%m-%Y")
+        time_str = local_dt.strftime("%H:%M:%S")
 
         lines = [
             "🚨 *Пороговые значения превышены!* 🚨",
@@ -76,6 +79,12 @@ class ThresholdHandler:
         for key, curr, thresh in alerts:
             name = self.INDICATORS_NAMES_MAP.get(key, key)
             lines.append(f"• *{name}*: {curr} (пороговое: {thresh})")
+
+        frame_url = getattr(record, "frame", None)
+        if frame_url:
+            lines.append("")
+            lines.append(f"[📷 Обработанный кадр]({frame_url})")
+
 
         text = "\n".join(lines)
 
