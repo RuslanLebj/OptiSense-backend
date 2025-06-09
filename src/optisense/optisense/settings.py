@@ -214,5 +214,10 @@ LOGGING = {
             "level": "INFO",
             "propagate": False,
         },
+        "api.handlers.threshold": {
+            "handlers": ["console"],
+            "level": "INFO",
+            "propagate": False,
+        },
     },
 }

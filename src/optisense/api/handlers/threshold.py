@@ -1,4 +1,6 @@
 import logging
+import time
+from collections import defaultdict
 
 from ..models import Record
 from ..telegram.adapter import TelegramAdapter
@@ -15,17 +17,26 @@ class ThresholdHandler:
         "queue_length": "длина очереди",
         "service_duration": "время обслуживания",
     }
+    COOLDOWN_SECONDS = 300
 
-    def __init__(self, telegram_adapter: TelegramAdapter = None):
-        self.telegram = telegram_adapter
+    def __init__(
+        self, telegram_adapter: TelegramAdapter = None,
+    ):
+        self.telegram = telegram_adapter or TelegramAdapter()
+        self.last_sent_per_camera = defaultdict(lambda: 0)
 
     def handle(self, record: Record) -> None:
-        """
-        Проверяем record.indicators_value против
-        camera.indicators_threshold и indicators_status.
-        Если есть срабатывания — шлём сообщение в Telegram.
-        """
         camera = record.camera
+        camera_id = camera.id
+        now = time.time()
+
+        last_sent = self.last_sent_per_camera[camera_id]
+        if now - last_sent < self.COOLDOWN_SECONDS:
+            logger.info(
+                f"[Throttle] Пропущено уведомление для камеры {camera_id}: cooldown ещё не прошёл ({int(now - last_sent)} сек)"
+            )
+            return
+
         status_cfg = camera.indicators_status or {}
         thresh_cfg = camera.indicators_threshold or {}
         values = record.indicators_value or {}
@@ -50,7 +61,6 @@ class ThresholdHandler:
         if not alerts:
             return
 
-
         date_str = record.record_time.strftime("%d-%m-%Y")
         time_str = record.record_time.strftime("%H:%M:%S")
 
@@ -69,4 +79,11 @@ class ThresholdHandler:
 
         text = "\n".join(lines)
 
-        self.telegram.send_message(text)
+        success = self.telegram.send_message(text)
+        if success:
+            self.last_sent_per_camera[camera_id] = now
+            logger.info(f"[Throttle] Уведомление отправлено для камеры {camera_id}")
+        else:
+            logger.error(
+                f"[Throttle] Не удалось отправить уведомление для камеры {camera_id}"
+            )
