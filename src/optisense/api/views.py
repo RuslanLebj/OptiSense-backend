@@ -2,7 +2,7 @@ from django_filters import rest_framework as filters
 from rest_framework import viewsets
 import csv
 from django.http import HttpResponse
-from django.db.models import Avg, Max, Min, FloatField
+from django.db.models import Avg, Max, FloatField
 from django.utils import timezone
 from django.db.models.expressions import RawSQL
 from rest_framework.decorators import action
@@ -13,6 +13,7 @@ from datetime import timedelta
 from django.db.models.functions import ExtractHour
 from unidecode import unidecode
 from django.db.models.functions import TruncMinute
+from django.utils.dateparse import parse_date
 
 from .models import Camera, Outlet, Record
 from .serializers import (
@@ -99,17 +100,15 @@ class RecordViewSet(FilteredModelViewSet):
         """
         cam_id = request.query_params.get("camera")
         indicator = request.query_params.get("indicator")
-        group_by = request.query_params.get("group_by", "day")
+        start_raw = request.query_params.get("start_date")
+        end_raw = request.query_params.get("end_date")
 
-        if not all([cam_id, indicator]) or group_by not in ("day", "week", "month"):
+        if not all([cam_id, indicator, start_raw, end_raw]):
             return Response(
-                {
-                    "error": "Нужны camera, indicator и корректный group_by (day|week|month)."
-                },
+                {"error": "Нужны camera, indicator, start_date и end_date."},
                 status=HTTP_400_BAD_REQUEST,
             )
 
-        # 1) Получаем камеру
         try:
             camera = Camera.objects.select_related("outlet").get(pk=cam_id)
         except Camera.DoesNotExist:
@@ -118,19 +117,18 @@ class RecordViewSet(FilteredModelViewSet):
                 status=HTTP_400_BAD_REQUEST,
             )
 
-        # 2) Вычисляем период
-        now = timezone.now()
-        if group_by == "day":
-            start = now - timedelta(days=1)
-        elif group_by == "week":
-            start = now - timedelta(weeks=1)
-        else:
-            start = now - timedelta(days=30)
-        end = now
+        try:
+            start_date = parse_date(start_raw)
+            end_date = parse_date(end_raw)
+            if not (start_date and end_date):
+                raise ValueError("используйте формат YYYY-MM-DD")
+            if start_date > end_date:
+                raise ValueError("start_date должен быть ≤ end_date")
+        except Exception as exc:
+            return Response({"error": str(exc)}, status=HTTP_400_BAD_REQUEST)
 
-        # 3) Фильтрация записей по периоду и смене камеры
         qs = self.filter_queryset(self.get_queryset()).filter(
-            record_time__range=(start, end)
+            record_time__date__range=(start_date, end_date)
         )
         if camera.start_time and camera.end_time:
             qs = qs.filter(
@@ -138,35 +136,30 @@ class RecordViewSet(FilteredModelViewSet):
                 record_time__time__lt=camera.end_time,
             )
 
-        # 4) Считаем агрегаты по часам
         expr = RawSQL(
-            "(indicators_value ->> %s)::float",
-            (indicator,),
-            output_field=FloatField(),
+            "(indicators_value ->> %s)::float", (indicator,), output_field=FloatField()
         )
         agg = (
             qs.annotate(hour=ExtractHour("record_time"))
             .values("hour")
-            .annotate(
-                avg=Avg(expr),
-                max=Max(expr),
-            )
+            .annotate(avg=Avg(expr), max=Max(expr))
             .order_by("hour")
         )
         data_map = {row["hour"]: row for row in agg}
 
-        # 5) Формируем список всех интервалов смены камеры
         h_start = camera.start_time.hour if camera.start_time else 0
         h_end = camera.end_time.hour if camera.end_time else 24
         intervals = list(range(h_start, h_end))
 
-        ## 6) Формируем безопасное ASCII имя + добавляем метку времени по ЕКБ
+        now = timezone.now()
         ts = now.strftime("%Y%m%d_%H%M%S")
+
         base_raw = f"{camera.outlet.address}-{camera.name}"
         base = unidecode(base_raw).replace(" ", "_")
-        filename = f"{base}-{group_by}-{ts}.csv"
 
-        # 7) Отдаём CSV
+        period = f"{start_date.strftime('%Y%m%d')}-{end_date.strftime('%Y%m%d')}"
+        filename = f"{base}-{period}-{ts}.csv"
+
         resp = HttpResponse(content_type="text/csv")
         resp["Access-Control-Expose-Headers"] = "Content-Disposition"
         resp["Content-Disposition"] = f'attachment; filename="{filename}"'
@@ -185,15 +178,15 @@ class RecordViewSet(FilteredModelViewSet):
         """
         cam_id = request.query_params.get("camera")
         indicator = request.query_params.get("indicator")
-        group_by = request.query_params.get("group_by", "day")
+        start_raw = request.query_params.get("start_date")
+        end_raw = request.query_params.get("end_date")
 
-        if not all([cam_id, indicator]) or group_by not in ("day", "week", "month"):
+        if not all([cam_id, indicator, start_raw, end_raw]):
             return Response(
-                {"error": "Нужны camera, indicator и корректный group_by (day|week|month)."},
+                {"error": "Нужны camera, indicator, start_date и end_date."},
                 status=HTTP_400_BAD_REQUEST,
             )
 
-        # 1) Получаем камеру
         try:
             camera = Camera.objects.select_related("outlet").get(pk=cam_id)
         except Camera.DoesNotExist:
@@ -202,19 +195,18 @@ class RecordViewSet(FilteredModelViewSet):
                 status=HTTP_400_BAD_REQUEST,
             )
 
-        # 2) Вычисляем период
-        now = timezone.now()
-        if group_by == "day":
-            start = now - timedelta(days=1)
-        elif group_by == "week":
-            start = now - timedelta(weeks=1)
-        else:
-            start = now - timedelta(days=30)
-        end = now
+        try:
+            start_date = parse_date(start_raw)
+            end_date = parse_date(end_raw)
+            if not (start_date and end_date):
+                raise ValueError("используйте формат YYYY-MM-DD")
+            if start_date > end_date:
+                raise ValueError("start_date должен быть ≤ end_date")
+        except Exception as exc:
+            return Response({"error": str(exc)}, status=HTTP_400_BAD_REQUEST)
 
-        # 3) Фильтрация записей по периоду и смене камеры
         qs = self.filter_queryset(self.get_queryset()).filter(
-            record_time__range=(start, end)
+            record_time__date__range=(start_date, end_date)
         )
         if camera.start_time and camera.end_time:
             qs = qs.filter(
@@ -222,38 +214,32 @@ class RecordViewSet(FilteredModelViewSet):
                 record_time__time__lt=camera.end_time,
             )
 
-        # 4) Считаем агрегаты по часам
         expr = RawSQL(
-            "(indicators_value ->> %s)::float",
-            (indicator,),
-            output_field=FloatField(),
+            "(indicators_value ->> %s)::float", (indicator,), output_field=FloatField()
         )
         agg = (
             qs.annotate(hour=ExtractHour("record_time"))
             .values("hour")
-            .annotate(
-                avg=Avg(expr),
-                max=Max(expr),
-            )
+            .annotate(avg=Avg(expr), max=Max(expr))
             .order_by("hour")
         )
         data_map = {row["hour"]: row for row in agg}
 
-        # 5) Формируем список всех интервалов смены камеры
         h_start = camera.start_time.hour if camera.start_time else 0
         h_end = camera.end_time.hour if camera.end_time else 24
         intervals = list(range(h_start, h_end))
 
-        # 6) Собираем результат
         result = []
         for h in intervals:
             row = data_map.get(h, {"avg": 0, "max": 0})
             label = f"{h}:00 - {h + 1}:00"
-            result.append({
-                "interval": label,
-                "avg": row["avg"],
-                "max": row["max"],
-            })
+            result.append(
+                {
+                    "interval": label,
+                    "avg": row["avg"],
+                    "max": row["max"],
+                }
+            )
 
         return Response({"values": result})
 
@@ -303,8 +289,7 @@ class RecordViewSet(FilteredModelViewSet):
 
         # 3) берём первую запись каждой минуты
         history_qs = (
-            subset
-            .annotate(minute=TruncMinute("record_time"))
+            subset.annotate(minute=TruncMinute("record_time"))
             .order_by("minute", "record_time")
             .distinct("minute")
         )
