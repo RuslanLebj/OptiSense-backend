@@ -92,13 +92,10 @@ class RecordViewSet(FilteredModelViewSet):
         except ValueError as e:
             return Response({"error": str(e)}, status=HTTP_400_BAD_REQUEST)
 
-    @action(detail=False, methods=["get"], url_path="aggregates/csv")
-    def aggregates_csv(self, request: Request):
+    @action(detail=False, methods=["get"], url_path="hours/aggregates/csv")
+    def hours_aggregates_csv(self, request: Request):
         """
-        CSV с avg/max/min по каждому часовому интервалу смены камеры.
-        Параметры:
-          • camera (id камеры), indicator (ключ JSON) — обязательны
-          • group_by — one of 'day', 'week', 'month' (по умолчанию 'day')
+        CSV с avg/max по каждому часовому интервалу смены камеры.
         """
         cam_id = request.query_params.get("camera")
         indicator = request.query_params.get("indicator")
@@ -153,7 +150,6 @@ class RecordViewSet(FilteredModelViewSet):
             .annotate(
                 avg=Avg(expr),
                 max=Max(expr),
-                min=Min(expr),
             )
             .order_by("hour")
         )
@@ -175,12 +171,91 @@ class RecordViewSet(FilteredModelViewSet):
         resp["Access-Control-Expose-Headers"] = "Content-Disposition"
         resp["Content-Disposition"] = f'attachment; filename="{filename}"'
         writer = csv.writer(resp)
-        writer.writerow(["interval", "avg", "max", "min"])
+        writer.writerow(["interval", "avg", "max"])
         for h in intervals:
-            row = data_map.get(h, {"avg": 0, "max": 0, "min": 0})
+            row = data_map.get(h, {"avg": 0, "max": 0})
             label = f"{h}:00 - {h + 1}:00"
-            writer.writerow([label, row["avg"], row["max"], row["min"]])
+            writer.writerow([label, row["avg"], row["max"]])
         return resp
+
+    @action(detail=False, methods=["get"], url_path="hours/aggregates")
+    def hours_aggregates(self, request: Request):
+        """
+        JSON с avg/max по каждому часовому интервалу смены камеры.
+        """
+        cam_id = request.query_params.get("camera")
+        indicator = request.query_params.get("indicator")
+        group_by = request.query_params.get("group_by", "day")
+
+        if not all([cam_id, indicator]) or group_by not in ("day", "week", "month"):
+            return Response(
+                {"error": "Нужны camera, indicator и корректный group_by (day|week|month)."},
+                status=HTTP_400_BAD_REQUEST,
+            )
+
+        # 1) Получаем камеру
+        try:
+            camera = Camera.objects.select_related("outlet").get(pk=cam_id)
+        except Camera.DoesNotExist:
+            return Response(
+                {"error": f"Камера id={cam_id} не найдена."},
+                status=HTTP_400_BAD_REQUEST,
+            )
+
+        # 2) Вычисляем период
+        now = timezone.now()
+        if group_by == "day":
+            start = now - timedelta(days=1)
+        elif group_by == "week":
+            start = now - timedelta(weeks=1)
+        else:
+            start = now - timedelta(days=30)
+        end = now
+
+        # 3) Фильтрация записей по периоду и смене камеры
+        qs = self.filter_queryset(self.get_queryset()).filter(
+            record_time__range=(start, end)
+        )
+        if camera.start_time and camera.end_time:
+            qs = qs.filter(
+                record_time__time__gte=camera.start_time,
+                record_time__time__lt=camera.end_time,
+            )
+
+        # 4) Считаем агрегаты по часам
+        expr = RawSQL(
+            "(indicators_value ->> %s)::float",
+            (indicator,),
+            output_field=FloatField(),
+        )
+        agg = (
+            qs.annotate(hour=ExtractHour("record_time"))
+            .values("hour")
+            .annotate(
+                avg=Avg(expr),
+                max=Max(expr),
+            )
+            .order_by("hour")
+        )
+        data_map = {row["hour"]: row for row in agg}
+
+        # 5) Формируем список всех интервалов смены камеры
+        h_start = camera.start_time.hour if camera.start_time else 0
+        h_end = camera.end_time.hour if camera.end_time else 24
+        intervals = list(range(h_start, h_end))
+
+        # 6) Собираем результат
+        result = []
+        for h in intervals:
+            row = data_map.get(h, {"avg": 0, "max": 0})
+            label = f"{h}:00 - {h + 1}:00"
+            result.append({
+                "interval": label,
+                "avg": row["avg"],
+                "max": row["max"],
+            })
+
+        return Response({"values": result})
 
     @action(detail=False, methods=["get"], url_path="history")
     def history(self, request: Request):
