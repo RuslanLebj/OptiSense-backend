@@ -26,8 +26,9 @@ from .filters import CameraFilter, RecordFilter
 from .queries import aggregate_indicators
 from .handlers.threshold import ThresholdHandler
 from .telegram.adapter import TelegramAdapter
+from django.conf import settings
 
-telegram_adapter = TelegramAdapter()
+telegram_adapter = TelegramAdapter(token=settings.TELEGRAM_BOT_TOKEN, chat_id=settings.TELEGRAM_CHAT_ID)
 threshold_handler = ThresholdHandler(telegram_adapter=telegram_adapter)
 
 

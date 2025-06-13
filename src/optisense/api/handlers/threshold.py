@@ -1,7 +1,6 @@
 import logging
 import time
 from collections import defaultdict
-from zoneinfo import ZoneInfo
 
 from ..models import Record
 from ..telegram.adapter import TelegramAdapter
@@ -18,12 +17,14 @@ class ThresholdHandler:
         "queue_length": "длина очереди",
         "service_duration": "время обслуживания",
     }
-    COOLDOWN_SECONDS = 300
 
     def __init__(
-        self, telegram_adapter: TelegramAdapter = None,
+        self,
+        telegram_adapter: TelegramAdapter = None,
+        cooldown_seconds: int = 120,
     ):
         self.telegram = telegram_adapter or TelegramAdapter()
+        self.cooldown_seconds = cooldown_seconds
         self.last_sent_per_camera = defaultdict(lambda: 0)
 
     def handle(self, record: Record) -> None:
@@ -32,7 +33,7 @@ class ThresholdHandler:
         now = time.time()
 
         last_sent = self.last_sent_per_camera[camera_id]
-        if now - last_sent < self.COOLDOWN_SECONDS:
+        if now - last_sent < self.cooldown_seconds:
             logger.info(
                 f"[Throttle] Пропущено уведомление для камеры {camera_id}: cooldown ещё не прошёл ({int(now - last_sent)} сек)"
             )
@@ -66,7 +67,7 @@ class ThresholdHandler:
         time_str = record.record_time.strftime("%H:%M:%S")
 
         lines = [
-            "🚨 *Пороговые значения достигнуты!* 🚨",
+            "🚨 *Достигнуты пороговые значения!* 🚨",
             f"📍 *Адрес*: {camera.outlet.address}",
             f"🎥 *Камера*: {camera.name}",
             f"🗓️ *Дата*: {date_str}",
@@ -78,15 +79,19 @@ class ThresholdHandler:
             name = self.INDICATORS_NAMES_MAP.get(key, key)
             lines.append(f"• *{name}*: {curr} (пороговое: {thresh})")
 
-        frame_url = getattr(record, "frame", None)
-        if frame_url:
-            lines.append("")
-            lines.append(f"[📷 Обработанный кадр]({frame_url})")
-
-
         text = "\n".join(lines)
+        frame_url = getattr(record, "frame", None)
 
-        success = self.telegram.send_message(text)
+        if frame_url:
+            caption = f"{text}\n\n[📷 Скачать кадр]({frame_url})"
+            success = self.telegram.send_photo(
+                photo_url=frame_url,
+                caption=caption,
+                disable_web_page_preview=True,
+            )
+        else:
+            success = self.telegram.send_message(text=text)
+
         if success:
             self.last_sent_per_camera[camera_id] = now
             logger.info(f"[Throttle] Уведомление отправлено для камеры {camera_id}")
