@@ -40,7 +40,7 @@ class Record(models.Model):
     camera = models.ForeignKey(Camera, models.DO_NOTHING)
     record_time = models.DateTimeField()
     indicators_value = models.JSONField(blank=True, null=True)
-    frame = models.JSONField(blank=True, null=True)
+    frame = models.CharField(max_length=255, blank=True, null=True)
 
     class Meta:
         # managed = False
