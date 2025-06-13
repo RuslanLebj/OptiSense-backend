@@ -1,6 +1,5 @@
 import logging
 import httpx
-from django.conf import settings
 
 logger = logging.getLogger(__name__)
 
@@ -10,12 +9,11 @@ class TelegramAdapter:
     Адаптер для отправки сообщений в Telegram через Bot API.
     """
 
-    def __init__(self, token: str = None, chat_id: str = None, timeout: int = 10.0):
+    def __init__(self, token: str = None, chat_id: str = None, timeout: int = 2.0):
         self.token = token
         self.chat_id = chat_id
         self.base_url = f"https://api.telegram.org/bot{self.token}"
         self.timeout = timeout
-        self.client = httpx.Client(timeout=timeout)
 
     def send_message(
         self,
@@ -44,8 +42,9 @@ class TelegramAdapter:
         }
 
         try:
-            resp = self.client.post(url, data=payload)
-            resp.raise_for_status()
+            with httpx.Client(timeout=self.timeout) as client:
+                resp = client.post(url, data=payload)
+                resp.raise_for_status()
             return True
         except Exception as e:
             logger.exception(f"Ошибка при отправке Telegram-сообщения (sync): {e}")
@@ -85,8 +84,9 @@ class TelegramAdapter:
             payload["caption"] = caption
 
         try:
-            resp = self.client.post(url, data=payload)
-            resp.raise_for_status()
+            with httpx.Client(timeout=self.timeout) as client:
+                resp = client.post(url, data=payload)
+                resp.raise_for_status()
             return True
         except Exception as e:
             logger.exception(f"Ошибка при отправке Telegram-изображения (sync): {e}")

@@ -21,7 +21,7 @@ class ThresholdHandler:
     def __init__(
         self,
         telegram_adapter: TelegramAdapter = None,
-        cooldown_seconds: int = 120,
+        cooldown_seconds: int = 180,
     ):
         self.telegram = telegram_adapter or TelegramAdapter()
         self.cooldown_seconds = cooldown_seconds
