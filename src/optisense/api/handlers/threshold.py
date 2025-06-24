@@ -57,7 +57,7 @@ class ThresholdHandler:
                 thresh = thresh_cfg[key]
             except (TypeError, ValueError):
                 continue
-            if curr >= thresh:
+            if curr > thresh:
                 alerts.append((key, curr, thresh))
 
         if not alerts:
@@ -67,13 +67,13 @@ class ThresholdHandler:
         time_str = record.record_time.strftime("%H:%M:%S")
 
         lines = [
-            "🚨 *Достигнуты пороговые значения!* 🚨",
+            "🚨 *Превышены пороговые значения!* 🚨",
             f"📍 *Адрес*: {camera.outlet.address}",
             f"🎥 *Камера*: {camera.name}",
             f"🗓️ *Дата*: {date_str}",
             f"⏰ *Время*: {time_str}",
             "",
-            "📊 *Показатели*, достигшие порога:",
+            "📊 *Показатели*, превысившие порог:",
         ]
         for key, curr, thresh in alerts:
             name = self.INDICATORS_NAMES_MAP.get(key, key)
